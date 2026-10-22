@@ -32,35 +32,3 @@
 | ニコニコ動画 | `https://www.nicovideo.jp/watch/smXXXXXXXX` / `https://nico.ms/smXXXXXXXX` |
 
 URL の `t=90`（YouTube）や `from=90`（ニコニコ）も開始位置として読み取ります。
-
-## GitHub Pages で公開する
-
-1. このリポジトリを GitHub に push
-2. **Settings → Pages → Build and deployment**
-3. Source を `Deploy from a branch`、Branch を `main` / `(root)` にして Save
-4. 数分後に `https://<ユーザー名>.github.io/<リポジトリ名>/` で公開されます
-
-## 注意事項
-
-- **YouTubeの「エラー153（動画プレーヤーの設定エラー）」**: `index.html` をダブルクリックして `file://` で開くと、YouTubeが埋め込み元（リファラ）を確認できず再生できません。GitHub Pages に公開するか、ローカルサーバーで開いてください。
-  ```bash
-  python3 -m http.server 8000   # → http://localhost:8000 を開く
-  ```
-  ニコニコ動画は `file://` でも再生できる場合があります。
-
-- **自動再生について**: ブラウザの制限により、動画の自動再生が止められることがあります。その場合はアラーム画面の再生ボタンを押してください。タイマーを「スタート」した操作が起点になるため、通常は再生されやすくなっています。
-- **埋め込み不可の動画**: 投稿者が埋め込みを許可していない動画は再生できません。別の動画を指定してください。
-- 動画の再生には各サービスの埋め込みプレイヤーを使用しており、インターネット接続が必要です。
-- 動画の著作権・利用規約は各サービスに従ってください。
-
-## ファイル構成
-
-```
-.
-├── index.html   # アプリ本体（HTML / CSS / JS）
-└── README.md
-```
-
-## ライセンス
-
-公開時に `LICENSE` ファイル（MIT など）を追加してください。
