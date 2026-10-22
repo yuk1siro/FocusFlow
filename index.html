@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FocusFlow — 集中タイマー</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌊</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e6f0ee;--panel:#f6faf9;--ink:#10302e;--sub:#4f6d6a;--line:#c3d7d3;--water:#2f5bff;--water2:#7fa0ff;--on:#fff;--break:#0f8f7a}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b1b1a;--panel:#112625;--ink:#e3f2ef;--sub:#8fb0ac;--line:#244240;--water:#5b82ff;--water2:#2f4fc4;--on:#0b1b1a;--break:#35c9ae}}
+:root[data-theme=dark]{--bg:#0b1b1a;--panel:#112625;--ink:#e3f2ef;--sub:#8fb0ac;--line:#244240;--water:#5b82ff;--water2:#2f4fc4;--on:#0b1b1a;--break:#35c9ae}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;min-height:100vh;display:flex;justify-content:center;padding:24px 16px 48px}
+main{width:100%;max-width:440px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+h1{font-size:1.25rem;margin:0;font-weight:700;letter-spacing:.02em}
+h1 small{font-weight:400;color:var(--sub);font-size:.8rem;margin-left:8px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+.icon{background:none;border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--sub)}
+.tabs{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:5px}
+.tabs button{flex:1;border:0;background:none;padding:9px 4px;border-radius:10px;color:var(--sub);font-weight:500}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.dial{position:relative;width:min(78vw,320px);aspect-ratio:1;margin:28px auto 20px;border-radius:50%;overflow:hidden;background:var(--panel);border:2px solid var(--ink)}
+.tide{position:absolute;left:0;right:0;bottom:0;height:100%;background:linear-gradient(var(--water2),var(--water));transition:height 1s linear}
+body[data-mode=short] .tide,body[data-mode=long] .tide{background:var(--break)}
+.tide::before{content:"";position:absolute;left:-10%;width:120%;top:-9px;height:18px;background:inherit;border-radius:50%;animation:sway 4s ease-in-out infinite alternate}
+@keyframes sway{to{transform:translateX(6%)}}
+.readout{position:absolute;inset:0;display:grid;place-content:center;text-align:center;mix-blend-mode:normal}
+.time{font-size:clamp(3.2rem,18vw,4.8rem);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.01em;line-height:1;color:var(--ink);text-shadow:0 0 14px var(--panel),0 0 3px var(--panel)}
+.label{margin-top:8px;color:var(--ink);font-weight:500;text-shadow:0 0 8px var(--panel)}
+.controls{display:flex;gap:10px;justify-content:center}
+.primary{background:var(--ink);color:var(--bg);border:0;border-radius:14px;padding:14px 38px;font-weight:700;font-size:1.05rem;min-width:150px}
+.ghost{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 20px}
+.count{text-align:center;color:var(--sub);margin:16px 0 0;font-size:.9rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:20px}
+.card h2{font-size:1rem;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+label{display:block;font-size:.82rem;color:var(--sub)}
+input[type=number],input[type=url],input[type=text]{width:100%;margin-top:4px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.row{margin-top:12px}
+.check{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:.9rem}
+.check input{width:18px;height:18px}
+.hint{font-size:.8rem;color:var(--sub);margin:6px 0 0;min-height:1.2em}
+.hint.ok{color:var(--break)}.hint.err{color:#d6453d}
+.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.actions button{padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+#alarm{position:fixed;inset:0;background:rgba(5,15,14,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+#alarm.show{display:flex}
+.sheet{background:var(--panel);border-radius:18px;padding:18px;width:100%;max-width:520px}
+.sheet h2{margin:0 0 4px}
+.sheet p{margin:0 0 12px;color:var(--sub)}
+.player{aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;margin-bottom:14px}
+.player iframe{width:100%;height:100%;border:0}
+.player:empty{display:none}
+.sheet .controls{flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){.tide,.tide::before{transition:none;animation:none}}
+</style>
+</head>
+<body data-mode="focus">
+<main>
+  <header>
+    <h1>FocusFlow<small>集中タイマー</small></h1>
+    <button class="icon" id="theme" aria-label="テーマを切り替える">🌓</button>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="モード">
+    <button role="tab" data-mode="focus" aria-selected="true">集中</button>
+    <button role="tab" data-mode="short" aria-selected="false">小休憩</button>
+    <button role="tab" data-mode="long" aria-selected="false">長休憩</button>
+  </div>
+
+  <div class="dial" aria-live="off">
+    <div class="tide" id="tide"></div>
+    <div class="readout"><div class="time" id="time" role="timer">25:00</div><div class="label" id="label">集中する</div></div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="toggle">スタート</button>
+    <button class="ghost" id="reset">リセット</button>
+  </div>
+  <p class="count" id="count">今日の集中 0 回</p>
+
+  <section class="card">
+    <h2>タイマー設定（分）</h2>
+    <div class="grid">
+      <label>集中<input type="number" id="focus" min="1" max="180"></label>
+      <label>小休憩<input type="number" id="short" min="1" max="60"></label>
+      <label>長休憩<input type="number" id="long" min="1" max="120"></label>
+    </div>
+    <div class="row"><label>長休憩までの集中回数<input type="number" id="cycles" min="2" max="10"></label></div>
+    <div class="row"><label class="check"><input type="checkbox" id="autoNext">終了後、次のタイマーを自動で始める</label></div>
+  </section>
+
+  <section class="card">
+    <h2>終了時に流す動画</h2>
+    <label for="url">YouTube / ニコニコ動画のリンク
+      <input type="url" id="url" placeholder="https://www.youtube.com/watch?v=… / https://www.nicovideo.jp/watch/sm…" inputmode="url">
+    </label>
+    <p class="hint" id="urlHint">未設定の場合は、内蔵のチャイム音が鳴ります。</p>
+    <div class="row"><label>再生開始位置（秒）<input type="number" id="start" min="0" placeholder="0"></label></div>
+    <div class="actions">
+      <button id="save">保存</button>
+      <button id="test">テスト再生</button>
+      <button id="clear">リンクを消す</button>
+    </div>
+  </section>
+</main>
+
+<div id="alarm" role="dialog" aria-modal="true" aria-labelledby="alarmTitle">
+  <div class="sheet">
+    <h2 id="alarmTitle">時間です</h2>
+    <p id="alarmMsg"></p>
+    <div class="player" id="player"></div>
+    <div class="controls">
+      <button class="primary" id="next">次へ進む</button>
+      <button class="ghost" id="stop">止める</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const KEY = "focusflow:v1";
+  const DEF = { focus:25, short:5, long:15, cycles:4, autoNext:false, url:"", start:0, done:0, day:"" };
+  const LABEL = { focus:"集中する", short:"小休憩", long:"長休憩" };
+  let cfg = load();
+  let mode = "focus", total = 0, remain = 0, endAt = 0, timer = null, running = false;
+
+  function load(){
+    try { return Object.assign({}, DEF, JSON.parse(localStorage.getItem(KEY) || "{}")); }
+    catch { return { ...DEF }; }
+  }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {} }
+  const today = () => new Date().toISOString().slice(0,10);
+  if (cfg.day !== today()) { cfg.day = today(); cfg.done = 0; }
+
+  /* ---------- URL 解析 ---------- */
+  function parseMedia(raw){
+    let u; try { u = new URL(raw.trim()); } catch { return null; }
+    const h = u.hostname.replace(/^www\.|^m\./, "");
+    const tSec = s => { if(!s) return 0; if(/^\d+$/.test(s)) return +s;
+      const m = s.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/); return (+m[1]||0)*3600+(+m[2]||0)*60+(+m[3]||0); };
+    if (h === "youtube.com" || h === "youtu.be" || h === "music.youtube.com"){
+      let id = "";
+      if (h === "youtu.be") id = u.pathname.slice(1);
+      else if (u.pathname === "/watch") id = u.searchParams.get("v") || "";
+      else { const m = u.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]{6,})/); if (m) id = m[1]; }
+      const list = u.searchParams.get("list") || "";
+      if (!/^[\w-]{6,}$/.test(id) && !list) return null;
+      return { type:"youtube", id: /^[\w-]{6,}$/.test(id) ? id : "", list, start: tSec(u.searchParams.get("t") || u.searchParams.get("start")) };
+    }
+    if (h === "nicovideo.jp" || h === "nico.ms"){
+      const m = u.pathname.match(/(?:\/watch)?\/((?:sm|nm|so)?\d+)/);
+      if (!m) return null;
+      return { type:"niconico", id:m[1], start: tSec(u.searchParams.get("from")) };
+    }
+    return null;
+  }
+  function embedSrc(m, extraStart){
+    const s = extraStart || m.start || 0;
+    if (m.type === "youtube"){
+      const base = m.id ? `https://www.youtube.com/embed/${m.id}` : "https://www.youtube.com/embed/videoseries";
+      const p = new URLSearchParams({ autoplay:"1", rel:"0", playsinline:"1" });
+      if (s) p.set("start", s);
+      if (m.list) p.set("list", m.list);
+      return `${base}?${p}`;
+    }
+    const p = new URLSearchParams({ autoplay:"1" });
+    if (s) p.set("from", s);
+    return `https://embed.nicovideo.jp/watch/${m.id}?${p}`;
+  }
+
+  /* ---------- 音 ---------- */
+  let ctx;
+  function chime(){
+    try {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      [660, 880, 1100].forEach((f,i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + i*.28;
+        o.frequency.value = f; o.type = "sine"; o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.25,t+.02); g.gain.exponentialRampToValueAtTime(.001,t+.6);
+        o.start(t); o.stop(t+.65);
+      });
+    } catch {}
+  }
+  function playAlarm(msg, test){
+    $("alarmTitle").textContent = test ? "テスト再生" : "時間です";
+    $("alarmMsg").textContent = msg;
+    $("next").style.display = test ? "none" : "";
+    const player = $("player"); player.innerHTML = "";
+    const m = cfg.url && parseMedia(cfg.url);
+    if (m){
+      const f = document.createElement("iframe");
+      f.src = embedSrc(m, cfg.start); f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      f.title = "終了時の動画"; f.referrerPolicy = "strict-origin-when-cross-origin";
+      player.appendChild(f);
+    } else chime();
+    $("alarm").classList.add("show");
+    $(test ? "stop" : "next").focus();
+  }
+  function closeAlarm(){ $("player").innerHTML = ""; $("alarm").classList.remove("show"); document.title = "FocusFlow — 集中タイマー"; }
+
+  /* ---------- タイマー ---------- */
+  const fmt = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+  function render(){
+    const sec = Math.ceil(remain/1000);
+    $("time").textContent = fmt(sec);
+    $("tide").style.height = (total ? remain/total*100 : 0) + "%";
+    $("label").textContent = LABEL[mode];
+    $("toggle").textContent = running ? "一時停止" : (remain < total ? "再開" : "スタート");
+    $("count").textContent = `今日の集中 ${cfg.done} 回`;
+    document.body.dataset.mode = mode;
+    document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.mode === mode));
+    if (running) document.title = `${fmt(sec)} ${LABEL[mode]} — FocusFlow`;
+  }
+  function setMode(m){
+    stop(); mode = m; total = remain = cfg[m] * 60000; render();
+  }
+  function tick(){
+    remain = Math.max(0, endAt - Date.now());
+    render();
+    if (remain <= 0) finish();
+  }
+  function start(){
+    if (running) return;
+    if (remain <= 0) remain = total;
+    endAt = Date.now() + remain; running = true;
+    try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); } catch {}
+    timer = setInterval(tick, 250); render();
+  }
+  function stop(){ running = false; clearInterval(timer); render(); }
+  function nextMode(){
+    if (mode === "focus") return cfg.done > 0 && cfg.done % cfg.cycles === 0 ? "long" : "short";
+    return "focus";
+  }
+  function finish(){
+    stop();
+    if (mode === "focus"){ cfg.done++; save(); }
+    const nm = nextMode();
+    render();
+    playAlarm(`次は「${LABEL[nm]}」です。`, false);
+    document.title = "⏰ 時間です — FocusFlow";
+    pending = nm;
+  }
+  let pending = "focus";
+
+  /* ---------- 設定 UI ---------- */
+  function fillForm(){
+    ["focus","short","long","cycles","start"].forEach(k => $(k).value = cfg[k]);
+    $("autoNext").checked = cfg.autoNext; $("url").value = cfg.url; checkUrl();
+  }
+  function checkUrl(){
+    const v = $("url").value.trim(), h = $("urlHint");
+    if (!v){ h.className = "hint"; h.textContent = "未設定の場合は、内蔵のチャイム音が鳴ります。"; return true; }
+    const m = parseMedia(v);
+    if (!m){ h.className = "hint err"; h.textContent = "YouTube または ニコニコ動画のリンクを入力してください。"; return false; }
+    h.className = "hint ok"; h.textContent = (m.type === "youtube" ? "YouTube" : "ニコニコ動画") + " のリンクを認識しました。";
+    return true;
+  }
+  const clamp = (el, lo, hi, d) => Math.min(hi, Math.max(lo, parseInt(el.value, 10) || d));
+  function readForm(){
+    cfg.focus = clamp($("focus"),1,180,25); cfg.short = clamp($("short"),1,60,5);
+    cfg.long = clamp($("long"),1,120,15); cfg.cycles = clamp($("cycles"),2,10,4);
+    cfg.start = Math.max(0, parseInt($("start").value, 10) || 0);
+    cfg.autoNext = $("autoNext").checked; cfg.url = $("url").value.trim();
+  }
+  ["focus","short","long","cycles","autoNext"].forEach(id => $(id).addEventListener("change", () => {
+    readForm(); save(); fillForm(); if (!running) setMode(mode);
+  }));
+  $("url").addEventListener("input", checkUrl);
+  $("save").addEventListener("click", () => {
+    if (!checkUrl()) return; readForm(); save(); fillForm();
+    $("urlHint").textContent += "（保存しました）";
+  });
+  $("clear").addEventListener("click", () => { $("url").value = ""; $("start").value = 0; readForm(); save(); checkUrl(); });
+  $("test").addEventListener("click", () => {
+    if (!checkUrl()) return; readForm(); playAlarm("設定した動画の再生を確認できます。", true);
+  });
+
+  /* ---------- 操作 ---------- */
+  $("toggle").addEventListener("click", () => running ? stop() : start());
+  $("reset").addEventListener("click", () => setMode(mode));
+  document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  $("stop").addEventListener("click", closeAlarm);
+  $("next").addEventListener("click", () => { closeAlarm(); setMode(pending); if (cfg.autoNext) start(); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") closeAlarm();
+    if (e.code === "Space" && e.target === document.body){ e.preventDefault(); running ? stop() : start(); }
+  });
+  document.addEventListener("visibilitychange", () => { if (running) tick(); });
+  $("theme").addEventListener("click", () => {
+    const r = document.documentElement, dark = getComputedStyle(r).getPropertyValue("--bg").trim() === "#0b1b1a";
+    r.dataset.theme = dark ? "light" : "dark";
+  });
+
+  fillForm(); setMode("focus");
+})();
+</script>
+</body>
+</html>
