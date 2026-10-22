@@ -32,3 +32,6 @@
 | ニコニコ動画 | `https://www.nicovideo.jp/watch/smXXXXXXXX` / `https://nico.ms/smXXXXXXXX` |
 
 URL の `t=90`（YouTube）や `from=90`（ニコニコ）も開始位置として読み取ります。
+
+## サイト
+https://yuk1siro.github.io/FocusFlow/
